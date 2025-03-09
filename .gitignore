@@ -1,5 +1,5 @@
 # Bỏ qua thư mục môi trường ảo
-venv/
+myenv/
 
 # Bỏ qua các file tạm và cache của Python
 __pycache__/
