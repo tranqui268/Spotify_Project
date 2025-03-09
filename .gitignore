@@ -1,0 +1,22 @@
+# Bỏ qua thư mục môi trường ảo
+venv/
+
+# Bỏ qua các file tạm và cache của Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Bỏ qua file cấu hình môi trường
+.env
+*.env
+
+# Bỏ qua thư mục database SQLite (nếu có)
+db.sqlite3
+
+# Bỏ qua các thư mục IDE
+.vscode/
+.idea/
+
+# Bỏ qua file log
+*.log
