@@ -42,7 +42,10 @@ INSTALLED_APPS = [
     'payment',
     'chat',
     'accounts',
+    'drf_yasg',
 ]
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
