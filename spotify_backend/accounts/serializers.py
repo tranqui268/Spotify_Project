@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only =True, required = True, style={'input_type': 'password'})
@@ -42,3 +43,27 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             date_of_birth=validated_data.get('date_of_birth', None),
         )
         return user
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['username'] = user.username
+        token['is_staff'] = user.is_staff
+        token['is_superuser'] = user.is_superuser
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = {
+            'id': self.user.id,
+            'username': self.user.username,
+            'email': self.user.email,
+            'is_staff': self.user.is_staff,
+            'is_superuser': self.user.is_superuser,
+            'is_premium': self.user.is_premium,
+            'profile_picture': self.user.profile_picture,
+            'gender': self.user.gender,
+            'date_of_birth': self.user.date_of_birth
+        }
+        return data

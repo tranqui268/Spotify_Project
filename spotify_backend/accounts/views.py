@@ -1,11 +1,23 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
-from .serializers import UserRegistrationSerializer
+from .serializers import UserRegistrationSerializer, CustomTokenObtainPairSerializer
 from drf_yasg import openapi
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .models import CustomUser
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .permissions import IsAdminUser
+from rest_framework.pagination import PageNumberPagination
+
+class UserPagination(PageNumberPagination):
+    page_size = 10  # Số lượng user mỗi trang
+    page_size_query_param = 'page_size'  # Cho phép người dùng tùy chỉnh số lượng trên mỗi trang
+    max_page_size = 100  # Giới hạn tối đa số lượng user trên mỗi trang
+
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema( # type: ignore
         operation_description="Register a new user",
@@ -65,3 +77,18 @@ class UserRegistrationView(generics.CreateAPIView):
             },
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class GetAllUserView(generics.ListAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    pagination_class = UserPagination
+
+class GetUserByIdView(generics.RetrieveAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [IsAuthenticated]
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+

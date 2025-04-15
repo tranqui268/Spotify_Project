@@ -1,6 +1,7 @@
 from django.db import models
 
 from accounts.models import CustomUser
+from cloudinary.models import CloudinaryField
 
 
 class Artist(models.Model):
@@ -40,8 +41,9 @@ class Song(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='songs')
     album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='songs', null=True, blank=True)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, null=True, blank=True)
-    audio_file = models.URLField(max_length=200)
-    video_file = models.URLField(max_length=200, null=True, blank=True)
+    song_image = CloudinaryField('image',blank=True, null=True, options={'folder': 'image'})
+    audio_file = CloudinaryField('audio',options={'folder': 'audio'})
+    video_file = CloudinaryField('video',null=True, blank=True, options={'folder': 'image'})
     duration = models.DurationField()
     lyrics = models.TextField(blank=True)
     total_plays = models.PositiveIntegerField(default=0)

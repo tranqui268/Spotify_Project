@@ -7,7 +7,7 @@ sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHER
     exit 1
 }
 
-Kiểm tra và tạo database spotify_db
+# Kiểm tra và tạo database spotify_db
 echo "Creating database 'spotify_db'..."
 if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "spotify_db"; then
     sudo -u postgres psql -c "CREATE DATABASE spotify_db OWNER spotify_user;" || {

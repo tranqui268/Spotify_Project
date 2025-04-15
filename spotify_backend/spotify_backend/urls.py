@@ -20,7 +20,11 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/accounts/', include('accounts.urls')),
+     path('api', include([
+        path('/', include('accounts.urls')),
+        path('/', include('emailLogin.urls')),
+    ])),
+
 
 
     # Swagger endpoints
