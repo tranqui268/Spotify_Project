@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Song
-from .models import Artist
+from .models import Song, Artist, Genre
+
 
 class SongSerializer(serializers.ModelSerializer):
     song_image = serializers.ImageField(required=False, write_only=True, allow_null=True)
@@ -90,4 +90,11 @@ class ArtistSerializer(serializers.ModelSerializer) :
         else:
             representation['profile_picture'] = None
         return representation
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ['id', 'name', 'description']
+        read_only_fields = ['id']
+
 

@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions, status, viewsets
-from .models import Song, Artist
-from .serializers import SongSerializer, ArtistSerializer
+from .models import Song, Artist, Genre
+from .serializers import SongSerializer, ArtistSerializer, GenreSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from drf_yasg import openapi
 from rest_framework.response import Response
@@ -429,3 +429,105 @@ class ArtistRetrieveUpdateDestroyView(generics.RetrieveDestroyAPIView):
                 {"status": "error", "message": "Artist not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+class GenreListCreateView(generics.ListAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="List all genres or create a new genre (Authenticated users)",
+        responses={
+            200: openapi.Response(description="List of genres"),
+            201: openapi.Response(description="Genre created"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Create a new genre (Authenticated users)",
+        request_body=GenreSerializer,
+        responses={
+            201: openapi.Response(description="Genre created"),
+            400: openapi.Response(description="Bad request"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+class GenreDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a genre by ID (Authenticated users)",
+        responses={
+            200: openapi.Response(description="Genre details"),
+            404: openapi.Response(description="Genre not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        genre = self.get_object()
+        serializer = self.get_serializer(genre)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Update a genre by ID (Authenticated users)",
+        request_body=GenreSerializer,
+        responses={
+            200: openapi.Response(description="Genre updated"),
+            400: openapi.Response(description="Bad request"),
+            404: openapi.Response(description="Genre not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        genre = self.get_object()
+        serializer = self.get_serializer(genre, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Partially update a genre by ID (Authenticated users)",
+        request_body=GenreSerializer,
+        responses={
+            200: openapi.Response(description="Genre updated"),
+            400: openapi.Response(description="Bad request"),
+            404: openapi.Response(description="Genre not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        genre = self.get_object()
+        serializer = self.get_serializer(genre, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Delete a genre by ID (Authenticated users)",
+        responses={
+            204: openapi.Response(description="Genre deleted"),
+            404: openapi.Response(description="Genre not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        genre = self.get_object()
+        genre.delete()
+        return Response({"status": "success", "message": "Genre deleted"}, status=status.HTTP_204_NO_CONTENT)
+    
+
