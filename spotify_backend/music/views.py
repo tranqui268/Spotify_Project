@@ -1,53 +1,292 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
 from .models import Song, Artist
 from .serializers import SongSerializer, ArtistSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from drf_yasg import openapi
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 
-class SongListCreateView(generics.ListCreateAPIView):
+class SongViewSet(viewsets.ModelViewSet):
     queryset = Song.objects.all()
     serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
-class SongRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Song.objects.all()
-    serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="List all songs or create a new song (Authenticated users)",
+        responses={
+            200: openapi.Response(
+                description="List of songs",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": [
+                            {
+                                "id": 1,
+                                "title": "Song Title",
+                                "artist": 1,
+                                "album": 1,
+                                "genre": 1,
+                                "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                                "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                                "video_file": "",
+                                "duration": "00:03:30",
+                                "lyrics": "Song lyrics",
+                                "total_plays": 0,
+                                "release_date": "2023-01-01"
+                            }
+                        ]
+                    }
+                }
+            ),
+            201: openapi.Response(
+                description="Song created successfully",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": {
+                            "id": 1,
+                            "title": "Song Title",
+                            "artist": 1,
+                            "album": 1,
+                            "genre": 1,
+                            "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                            "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                            "video_file": "",
+                            "duration": "00:03:30",
+                            "lyrics": "Song lyrics",
+                            "total_plays": 0,
+                            "release_date": "2023-01-01"
+                        }
+                    }
+                }
+            ),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
-# Filter views
-class SongByTitleView(generics.ListAPIView):
-    serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
-        title = self.kwargs['title']
-        return Song.objects.filter(title__icontains=title)
+    @swagger_auto_schema(
+        operation_description="Retrieve, update, or delete a song (Update/Delete: Admin only)",
+        responses={
+            200: openapi.Response(
+                description="Song details",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": {
+                            "id": 1,
+                            "title": "Song Title",
+                            "artist": 1,
+                            "album": 1,
+                            "genre": 1,
+                            "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                            "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                            "video_file": "",
+                            "duration": "00:03:30",
+                            "lyrics": "Song lyrics",
+                            "total_plays": 0,
+                            "release_date": "2023-01-01"
+                        }
+                    }
+                }
+            ),
+            404: openapi.Response(description="Song not found"),
+            403: openapi.Response(description="Permission denied"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            song = self.get_object()
+            serializer = self.get_serializer(song)
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        except Song.DoesNotExist:
+            return Response({"status": "error", "message": "Song not found"}, status=status.HTTP_404_NOT_FOUND)
 
-class SongByArtistView(generics.ListAPIView):
-    serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def update(self, request, *args, **kwargs):
+        try:
+            song = self.get_object()
+            serializer = self.get_serializer(song, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Song.DoesNotExist:
+            return Response({"status": "error", "message": "Song not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    def get_queryset(self):
-        artist_id = self.kwargs['artist_id']
-        return Song.objects.filter(artist_id=artist_id)
+    def destroy(self, request, *args, **kwargs):
+        try:
+            song = self.get_object()
+            song.delete()
+            return Response({"status": "success", "message": "Song deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Song.DoesNotExist:
+            return Response({"status": "error", "message": "Song not found"}, status=status.HTTP_404_NOT_FOUND)
 
-class SongByAlbumView(generics.ListAPIView):
-    serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['get'], url_path='by-title/(?P<title>[^/.]+)')
+    @swagger_auto_schema(
+        operation_description="Filter songs by title (case-insensitive)",
+        manual_parameters=[
+            openapi.Parameter('title', openapi.IN_PATH, description="Song title", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of songs matching title",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": [
+                            {
+                                "id": 1,
+                                "title": "Song Title",
+                                "artist": 1,
+                                "album": 1,
+                                "genre": 1,
+                                "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                                "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                                "video_file": "",
+                                "duration": "00:03:30",
+                                "lyrics": "Song lyrics",
+                                "total_plays": 0,
+                                "release_date": "2023-01-01"
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def by_title(self, request, title=None):
+        queryset = Song.objects.filter(title__icontains=title)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        album_id = self.kwargs['album_id']
-        return Song.objects.filter(album_id=album_id)
+    @action(detail=False, methods=['get'], url_path='by-artist/(?P<artist_id>\d+)')
+    @swagger_auto_schema(
+        operation_description="Filter songs by artist ID",
+        manual_parameters=[
+            openapi.Parameter('artist_id', openapi.IN_PATH, description="Artist ID", type=openapi.TYPE_INTEGER)
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of songs by artist",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": [
+                            {
+                                "id": 1,
+                                "title": "Song Title",
+                                "artist": 1,
+                                "album": 1,
+                                "genre": 1,
+                                "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                                "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                                "video_file": "",
+                                "duration": "00:03:30",
+                                "lyrics": "Song lyrics",
+                                "total_plays": 0,
+                                "release_date": "2023-01-01"
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def by_artist(self, request, artist_id=None):
+        queryset = Song.objects.filter(artist_id=artist_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
-class SongByGenreView(generics.ListAPIView):
-    serializer_class = SongSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['get'], url_path='by-album/(?P<album_id>\d+)')
+    @swagger_auto_schema(
+        operation_description="Filter songs by album ID",
+        manual_parameters=[
+            openapi.Parameter('album_id', openapi.IN_PATH, description="Album ID", type=openapi.TYPE_INTEGER)
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of songs by album",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": [
+                            {
+                                "id": 1,
+                                "title": "Song Title",
+                                "artist": 1,
+                                "album": 1,
+                                "genre": 1,
+                                "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                                "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                                "video_file": "",
+                                "duration": "00:03:30",
+                                "lyrics": "Song lyrics",
+                                "total_plays": 0,
+                                "release_date": "2023-01-01"
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def by_album(self, request, album_id=None):
+        queryset = Song.objects.filter(album_id=album_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        genre_id = self.kwargs['genre_id']
-        return Song.objects.filter(genre_id=genre_id)
+    @action(detail=False, methods=['get'], url_path='by-genre/(?P<genre_id>\d+)')
+    @swagger_auto_schema(
+        operation_description="Filter songs by genre ID",
+        manual_parameters=[
+            openapi.Parameter('genre_id', openapi.IN_PATH, description="Genre ID", type=openapi.TYPE_INTEGER)
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of songs by genre",
+                examples={
+                    "application/json": {
+                        "status": "success",
+                        "data": [
+                            {
+                                "id": 1,
+                                "title": "Song Title",
+                                "artist": 1,
+                                "album": 1,
+                                "genre": 1,
+                                "song_image": "https://res.cloudinary.com/your_cloud_name/image/upload/artists/image.jpg",
+                                "audio_file": "https://res.cloudinary.com/your_cloud_name/audio/upload/songs/song.mp3",
+                                "video_file": "",
+                                "duration": "00:03:30",
+                                "lyrics": "Song lyrics",
+                                "total_plays": 0,
+                                "release_date": "2023-01-01"
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def by_genre(self, request, genre_id=None):
+        queryset = Song.objects.filter(genre_id=genre_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
 class ArtistListCreateView(generics.ListAPIView):
     queryset = Artist.objects.all()
@@ -95,7 +334,7 @@ class ArtistListCreateView(generics.ListAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.queryset(), many = True)
+        serializer = self.get_serializer(self.get_queryset(), many = True)
         return Response(
             {"status":"success", "data": serializer.data},
             status= status.HTTP_200_OK

@@ -23,6 +23,7 @@ urlpatterns = [
      path('api', include([
         path('/', include('accounts.urls')),
         path('/', include('emailLogin.urls')),
+        path('/music/', include('music.urls'))
     ])),
 
 
