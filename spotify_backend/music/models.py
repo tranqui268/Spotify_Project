@@ -8,7 +8,7 @@ class Artist(models.Model):
     """ Music Artists Model """
     name = models.CharField(max_length=200)
     bio = models.TextField(blank=True)
-    profile_picture = models.URLField(max_length=200,blank=True,null=True)
+    profile_picture = CloudinaryField('image',blank=True, null=True)
     verified = models.BooleanField(default=False)
     monthly_listeners = models.IntegerField(default=0)
 
@@ -41,9 +41,9 @@ class Song(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='songs')
     album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='songs', null=True, blank=True)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, null=True, blank=True)
-    song_image = CloudinaryField('image',blank=True, null=True, options={'folder': 'image'})
-    audio_file = CloudinaryField('audio',options={'folder': 'audio'})
-    video_file = CloudinaryField('video',null=True, blank=True, options={'folder': 'image'})
+    song_image = CloudinaryField('image',blank=True, null=True)
+    audio_file = CloudinaryField('audio')
+    video_file = CloudinaryField('video',null=True, blank=True)
     duration = models.DurationField()
     lyrics = models.TextField(blank=True)
     total_plays = models.PositiveIntegerField(default=0)
