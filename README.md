@@ -1,9 +1,9 @@
 # I.	Cài đặt Frontend (Next.js)
 ## 1.	Yêu cầu hệ thống:
 •	Node.js ≥ v18.x
-
+<br>
 •	npm ≥ 9.x
-
+<br>
 •	Git
 ## 2.	Các bước triển khai:
 •	Bước 1: Clone repository từ GitHub
@@ -26,6 +26,7 @@ o	Truy cập ứng dụng tại: http://localhost:3000.
 ## 2.	Các bước triển khai: trong môi trường ubuntu
 •	Bước 1: Clone repository từ GitHub
 git clone https://github.com/tranqui268/Spotify_Project.git
+<br>
 •	Bước 2: Tạo môi trường ảo
 python3.12 -m venv myenv
 •	Bước 3 : Run file setup_db.sh
