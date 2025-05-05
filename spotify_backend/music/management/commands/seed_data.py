@@ -33,7 +33,7 @@ class Command(BaseCommand):
             'bio': lambda x: seeder.faker.text(),
             'verified': lambda x: seeder.faker.boolean(),
             'monthly_listeners': lambda x: seeder.faker.random_int(min=1000, max=1000000),
-            'profile_picture': 'https://i.scdn.co/image/ab67616d00001e02c51258e41841d5b0365054e7',  # Đặt giá trị None để bỏ qua
+            'profile_picture': 'https://res.cloudinary.com/dhis8yzem/image/upload/v1746455024/music_tsgdjp.jpg',  # Đặt giá trị None để bỏ qua
         })
 
         # Seed Album
@@ -43,7 +43,7 @@ class Command(BaseCommand):
             'genre': lambda x: seeder.faker.random_element(elements=Genre.objects.all()),
             'total_song': lambda x: seeder.faker.random_int(min=5, max=15),
             'release_date': lambda x: seeder.faker.date_this_year(),
-            'cover_image': 'https://i.scdn.co/image/ab67616d00001e02c51258e41841d5b0365054e7',  # Bỏ qua CloudinaryField
+            'cover_image': 'https://res.cloudinary.com/dhis8yzem/image/upload/v1746455024/music_tsgdjp.jpg',  # Bỏ qua CloudinaryField
         })
 
         # Seed Song
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             'duration': lambda x: seeder.faker.time_delta(),
             'release_date': lambda x: seeder.faker.date_this_year(),
             'total_plays': lambda x: seeder.faker.random_int(min=0, max=100000),
-            'song_image': 'https://i.scdn.co/image/ab67616d00001e02c51258e41841d5b0365054e7',  # Bỏ qua CloudinaryField
+            'song_image': 'https://res.cloudinary.com/dhis8yzem/image/upload/v1746455024/music_tsgdjp.jpg',  # Bỏ qua CloudinaryField
             'audio_file': lambda x: None,  # Bỏ qua CloudinaryField
             'video_file': lambda x: None,  # Bỏ qua CloudinaryField
         })
