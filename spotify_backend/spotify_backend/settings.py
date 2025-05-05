@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'emailLogin',
     'cloudinary',
     'cloudinary_storage',
+    'corsheaders'
 ]
 
 REST_FRAMEWORK = {
@@ -79,6 +80,7 @@ CHANNEL_LAYERS = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -107,6 +109,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'spotify_backend.wsgi.application'
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Domain của ReactJS khi chạy dev
+    "http://127.0.0.1:3000",  # Domain khác nếu cần
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Database
