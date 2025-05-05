@@ -1,5 +1,6 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from .models import CustomUser
+from django.utils.translation import gettext_lazy as _
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -54,16 +55,29 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'is_staff': self.user.is_staff,
-            'is_superuser': self.user.is_superuser,
-            'is_premium': self.user.is_premium,
-            'profile_picture': self.user.profile_picture,
-            'gender': self.user.gender,
-            'date_of_birth': self.user.date_of_birth
-        }
-        return data
+        try:
+            data = super().validate(attrs)
+            data['user'] = {
+                'id': self.user.id,
+                'username': self.user.username,
+                'email': self.user.email,
+                'is_staff': self.user.is_staff,
+                'is_superuser': self.user.is_superuser,
+                'is_premium': getattr(self.user, 'is_premium', False),
+                'profile_picture': getattr(self.user, 'profile_picture', None),
+                'gender': getattr(self.user, 'gender', None),
+                'date_of_birth': getattr(self.user, 'date_of_birth', None)
+            }
+            return data
+        except exceptions.AuthenticationFailed as e:
+            # Tùy chỉnh response lỗi theo định dạng yêu cầu
+            error_response = {
+                "status_code": 401,  # Unauthorized
+                "message": _("Login failed"),
+                "errors": {
+                    "credentials": [
+                        _("The username or password provided is incorrect. Please check your credentials and try again.")
+                    ]
+                }
+            }
+            raise exceptions.AuthenticationFailed(error_response)

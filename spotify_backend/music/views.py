@@ -1,6 +1,8 @@
 from rest_framework import generics, permissions, status, viewsets
-from .models import Song, Artist, Genre
-from .serializers import SongSerializer, ArtistSerializer, GenreSerializer
+
+from .permission import IsOwnerOrReadOnly
+from .models import Song, Artist, Genre, Album, Playlist
+from .serializers import SongSerializer, ArtistSerializer, GenreSerializer, AlbumSerializer, PlaylistSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from drf_yasg import openapi
 from rest_framework.response import Response
@@ -530,4 +532,212 @@ class GenreDetailView(generics.RetrieveUpdateDestroyAPIView):
         genre.delete()
         return Response({"status": "success", "message": "Genre deleted"}, status=status.HTTP_204_NO_CONTENT)
     
+class AlbumListCreateView(generics.ListCreateAPIView):
+    queryset = Album.objects.all()
+    serializer_class = AlbumSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="List all albums or create a new album (Authenticated users)",
+        responses={
+            200: openapi.Response(description="List of albums"),
+            201: openapi.Response(description="Album created"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Create a new album (Authenticated users)",
+        request_body=AlbumSerializer,
+        responses={
+            201: openapi.Response(description="Album created"),
+            400: openapi.Response(description="Bad request"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class AlbumDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Album.objects.all()
+    serializer_class = AlbumSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Retrieve an album by ID (Authenticated users)",
+        responses={
+            200: openapi.Response(description="Album details"),
+            404: openapi.Response(description="Album not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        album = self.get_object()
+        serializer = self.get_serializer(album)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Update an album by ID (Authenticated users)",
+        request_body=AlbumSerializer,
+        responses={
+            200: openapi.Response(description="Album updated"),
+            400: openapi.Response(description="Bad request"),
+            404: openapi.Response(description="Album not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        album = self.get_object()
+        serializer = self.get_serializer(album, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Partially update an album by ID (Authenticated users)",
+        request_body=AlbumSerializer,
+        responses={
+            200: openapi.Response(description="Album updated"),
+            400: openapi.Response(description="Bad request"),
+            404: openapi.Response(description="Album not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        album = self.get_object()
+        serializer = self.get_serializer(album, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Delete an album by ID (Authenticated users)",
+        responses={
+            204: openapi.Response(description="Album deleted"),
+            404: openapi.Response(description="Album not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        album = self.get_object()
+        album.delete()
+        return Response({"status": "success", "message": "Album deleted"}, status=status.HTTP_204_NO_CONTENT)
+    
+class PlaylistListCreateView(generics.ListCreateAPIView):
+    queryset = Playlist.objects.all()
+    serializer_class = PlaylistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Chỉ hiển thị playlists công khai hoặc playlists của user hiện tại
+        user = self.request.user
+        return Playlist.objects.filter(models.Q(is_public=True) | models.Q(user=user))
+
+    @swagger_auto_schema(
+        operation_description="List all public playlists or playlists created by the authenticated user, or create a new playlist",
+        responses={
+            200: openapi.Response(description="List of playlists"),
+            201: openapi.Response(description="Playlist created"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Create a new playlist (Authenticated users)",
+        request_body=PlaylistSerializer,
+        responses={
+            201: openapi.Response(description="Playlist created"),
+            400: openapi.Response(description="Bad request"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)  # Gán user hiện tại
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Playlist.objects.all()
+    serializer_class = PlaylistSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+
+    @swagger_auto_schema(
+        operation_description="Retrieve a playlist by ID (Public playlists or playlists of authenticated user)",
+        responses={
+            200: openapi.Response(description="Playlist details"),
+            404: openapi.Response(description="Playlist not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        playlist = self.get_object()
+        serializer = self.get_serializer(playlist)
+        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Update a playlist by ID (Only owner can update)",
+        request_body=PlaylistSerializer,
+        responses={
+            200: openapi.Response(description="Playlist updated"),
+            400: openapi.Response(description="Bad request"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Playlist not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        playlist = self.get_object()
+        serializer = self.get_serializer(playlist, data=request.data, partial=False)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Partially update a playlist by ID (Only owner can update)",
+        request_body=PlaylistSerializer,
+        responses={
+            200: openapi.Response(description="Playlist updated"),
+            400: openapi.Response(description="Bad request"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Playlist not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        playlist = self.get_object()
+        serializer = self.get_serializer(playlist, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_description="Delete a playlist by ID (Only owner can delete)",
+        responses={
+            204: openapi.Response(description="Playlist deleted"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Playlist not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        playlist = self.get_object()
+        playlist.delete()
+        return Response({"status": "success", "message": "Playlist deleted"}, status=status.HTTP_204_NO_CONTENT)
+
 

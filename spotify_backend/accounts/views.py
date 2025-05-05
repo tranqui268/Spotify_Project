@@ -90,5 +90,10 @@ class GetUserByIdView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        return response
 

@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Song, Artist, Genre
+from .models import Song, Artist, Genre, Album, Playlist
+from accounts.models import CustomUser
+from django.core.validators import FileExtensionValidator
 
 
 class SongSerializer(serializers.ModelSerializer):
@@ -98,3 +100,67 @@ class GenreSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
+class AlbumSerializer(serializers.ModelSerializer):
+    artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())
+    genre = serializers.PrimaryKeyRelatedField(queryset=Genre.objects.all(), required=False, allow_null=True)
+    cover_image = serializers.ImageField(
+        required=False,
+        write_only=True,
+        allow_null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
+    )
+
+    class Meta:
+        model = Album
+        fields = ['id', 'title', 'artist', 'genre', 'total_song', 'release_date', 'cover_image']
+        read_only_fields = ['id']
+
+    def create(self, validated_data):
+        cover_image = validated_data.pop('cover_image', None)
+        album = Album.objects.create(**validated_data)
+
+        if cover_image:
+            album.cover_image = cover_image
+            album.save()
+
+        return album
+
+    def update(self, instance, validated_data):
+        cover_image = validated_data.pop('cover_image', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if cover_image:
+            instance.cover_image = cover_image
+            instance.save()
+
+        return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['artist'] = instance.artist.name if instance.artist else None
+        representation['genre'] = instance.genre.name if instance.genre else None
+        representation['cover_image'] = instance.cover_image.url if instance.cover_image else None
+        return representation
+    
+
+class PlaylistSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), default=serializers.CurrentUserDefault())
+    songs = serializers.PrimaryKeyRelatedField(queryset=Song.objects.all(), many=True)
+
+    class Meta:
+        model = Playlist
+        fields = ['id', 'name', 'user', 'songs', 'is_public', 'created_at']
+        read_only_fields = ['id', 'created_at', 'user']
+
+    def validate_songs(self, value):
+        if not value:
+            raise serializers.ValidationError("A playlist must contain at least one song.")
+        return value
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['user'] = instance.user.username
+        representation['songs'] = [song.title for song in instance.songs.all()]
+        return representation
