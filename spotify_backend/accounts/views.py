@@ -10,11 +10,6 @@ from .permissions import IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 
-class UserPagination(PageNumberPagination):
-    page_size = 10  # Số lượng user mỗi trang
-    page_size_query_param = 'page_size'  # Cho phép người dùng tùy chỉnh số lượng trên mỗi trang
-    max_page_size = 100  # Giới hạn tối đa số lượng user trên mỗi trang
-
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -83,7 +78,6 @@ class GetAllUserView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
-    pagination_class = UserPagination
 
 class GetUserByIdView(generics.RetrieveAPIView):
     queryset = CustomUser.objects.all()
