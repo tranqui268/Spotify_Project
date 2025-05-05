@@ -100,6 +100,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        if instance.profile_picture:
-            representation['profile_picture'] = instance.profile_picture.url
         return representation

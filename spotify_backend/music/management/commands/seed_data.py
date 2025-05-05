@@ -52,7 +52,7 @@ class Command(BaseCommand):
             'artist': lambda x: seeder.faker.random_element(elements=Artist.objects.all()),
             'album': lambda x: seeder.faker.random_element(elements=Album.objects.all()),
             'genre': lambda x: seeder.faker.random_element(elements=Genre.objects.all()),
-            'duration': lambda x: seeder.faker.time_delta(),
+            'duration': lambda x: seeder.faker.random_int(min=120, max=300),
             'release_date': lambda x: seeder.faker.date_this_year(),
             'total_plays': lambda x: seeder.faker.random_int(min=0, max=100000),
             'song_image': 'https://res.cloudinary.com/dhis8yzem/image/upload/v1746455024/music_tsgdjp.jpg',  # Bỏ qua CloudinaryField

@@ -357,7 +357,6 @@ class ArtistListCreateView(generics.ListAPIView):
 class ArtistRetrieveUpdateDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Artist.objects.all()
     serializer_class = ArtistSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
 
     @swagger_auto_schema(
         operation_description="Retrieve, update, or delete an artist (Admin only)",

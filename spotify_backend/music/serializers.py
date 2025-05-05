@@ -2,14 +2,24 @@ from rest_framework import serializers
 from .models import Song, Artist, Genre, Album, Playlist
 from accounts.models import CustomUser
 from django.core.validators import FileExtensionValidator
+from accounts.serializers import UserProfileSerializer
 
-
-class ArtistSerializer(serializers.ModelSerializer) :
+class ArtistSerializer1(serializers.ModelSerializer) :
     profile_picture = serializers.ImageField(required=False, write_only=True, allow_null=True) 
+
 
     class Meta:
         model = Artist
         fields = ['id', 'name', 'bio', 'profile_picture', 'verified', 'monthly_listeners']
+        read_only_fields = ['id']
+
+class ArtistSerializer(serializers.ModelSerializer) :
+    profile_picture = serializers.ImageField(required=False, write_only=True, allow_null=True) 
+    songs = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Artist
+        fields = ['id', 'name', 'bio', 'profile_picture', 'verified', 'monthly_listeners', 'songs']
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -41,6 +51,12 @@ class ArtistSerializer(serializers.ModelSerializer) :
         else:
             representation['profile_picture'] = None
         return representation
+    
+    def get_songs(self, obj):
+        songs = Song.objects.filter(artist=obj)
+        # Tránh đệ quy bằng cách truyền context và giới hạn serialize
+        song_serializer = SongSerializer(songs, many=True, context={'request': self.context.get('request')})
+        return song_serializer.data
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -50,7 +66,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class AlbumSerializer(serializers.ModelSerializer):
-    artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())
+    artist = ArtistSerializer1(read_only=True)
     genre = serializers.PrimaryKeyRelatedField(queryset=Genre.objects.all(), required=False, allow_null=True)
     cover_image = serializers.ImageField(
         required=False,
@@ -58,10 +74,11 @@ class AlbumSerializer(serializers.ModelSerializer):
         allow_null=True,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
     )
+    songs = serializers.SerializerMethodField()
 
     class Meta:
         model = Album
-        fields = ['id', 'title', 'artist', 'genre', 'total_song', 'release_date', 'cover_image']
+        fields = ['id', 'title', 'artist', 'genre', 'total_song', 'release_date', 'cover_image', 'songs']
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -88,39 +105,22 @@ class AlbumSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['artist'] = instance.artist.name if instance.artist else None
         representation['genre'] = instance.genre.name if instance.genre else None
         representation['cover_image'] = instance.cover_image.url if instance.cover_image else None
         return representation
     
-
-class PlaylistSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), default=serializers.CurrentUserDefault())
-    songs = serializers.PrimaryKeyRelatedField(queryset=Song.objects.all(), many=True)
-
-    class Meta:
-        model = Playlist
-        fields = ['id', 'name', 'user', 'songs', 'is_public', 'created_at']
-        read_only_fields = ['id', 'created_at', 'user']
-
-    def validate_songs(self, value):
-        if not value:
-            raise serializers.ValidationError("A playlist must contain at least one song.")
-        return value
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['user'] = instance.user.username
-        representation['songs'] = [song.title for song in instance.songs.all()]
-        return representation
-
+    def get_songs(self, obj):
+        songs = Song.objects.filter(album=obj)
+        # Tránh đệ quy bằng cách truyền context và giới hạn serialize
+        song_serializer = SongSerializer(songs, many=True, context={'request': self.context.get('request')})
+        return song_serializer.data
 
 class SongSerializer(serializers.ModelSerializer):
     song_image = serializers.ImageField(required=False, write_only=True, allow_null=True)
     audio_file = serializers.FileField(required=True, write_only=True)
     video_file = serializers.FileField(required=False, write_only=True, allow_null=True)
-    artist = ArtistSerializer(read_only=True) 
-    album = AlbumSerializer(read_only=True)
+    artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())
+    album = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
     class Meta:
         model = Song
         fields = [
@@ -166,4 +166,25 @@ class SongSerializer(serializers.ModelSerializer):
         representation['audio_file'] = instance.audio_file.url if instance.audio_file else None
         representation['video_file'] = instance.video_file.url if instance.video_file else None
         return representation
+
+class PlaylistSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(read_only=True)
+    songs = SongSerializer(many=True)
+
+    class Meta:
+        model = Playlist
+        fields = ['id', 'name', 'user', 'songs', 'is_public', 'created_at']
+        read_only_fields = ['id', 'created_at', 'user']
+
+    def validate_songs(self, value):
+        if not value:
+            raise serializers.ValidationError("A playlist must contain at least one song.")
+        return value
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        return representation
+
+
+
 

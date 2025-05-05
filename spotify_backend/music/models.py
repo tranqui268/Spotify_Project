@@ -48,7 +48,7 @@ class Song(models.Model):
     song_image = CloudinaryField('image',blank=True, null=True, folder='spotify')
     audio_file = CloudinaryField('audio', folder='spotify')
     video_file = CloudinaryField('video',null=True, blank=True, folder='spotify')
-    duration = models.DurationField()
+    duration = models.IntegerField()
     lyrics = models.TextField(blank=True)
     total_plays = models.PositiveIntegerField(default=0)
     release_date = models.DateField()
