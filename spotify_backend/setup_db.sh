@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Đặt biến môi trường cho thư mục project
-PROJECT_DIR="/home/nhatqui/Spotify_Project/spotify_backend"
+# Lấy thư mục chứa file setup_db.sh động (thay vì cố định PROJECT_DIR)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="../myenv"
 
 # Kiểm tra và tạo user PostgreSQL với quyền CREATEDB
@@ -22,9 +22,9 @@ else
     echo "Database 'spotify_db' already exists."
 fi
 
-# Di chuyển vào thư mục project
-cd "$PROJECT_DIR" || {
-    echo "Failed to change directory to $PROJECT_DIR."
+# Di chuyển vào thư mục chứa script (thư mục project)
+cd "$SCRIPT_DIR" || {
+    echo "Failed to change directory to $SCRIPT_DIR."
     exit 1
 }
 
@@ -54,14 +54,14 @@ else
         }
     else
         echo "requirements.txt not found. Installing basic dependencies..."
-        pip install django djangorestframework djangorestframework-simplejwt django-filters drf-yasg cloudinary django-cloudinary-storage django-cors-headers django-seed psycopg2-binary || {
+        pip install django djangorestframework djangorestframework-simplejwt django-filters drf-yasg cloudinary django-cloudinary-storage django-cors-headers django-seed psycopg2-binary channels channels-redis daphne || {
             echo "Failed to install basic dependencies."
             exit 1
-        }
-        echo "django-cors-headers" >> requirements.txt
-        echo "django-seed==0.2.2" >> requirements.txt  # Sử dụng phiên bản tương thích
+        }       
     fi
 fi
+
+
 
 # Tạo migration files
 echo "Generating migrations..."
