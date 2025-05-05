@@ -29,6 +29,7 @@ git clone https://github.com/tranqui268/Spotify_Project.git
 <br>
 •	Bước 2: Tạo môi trường ảo
 python3.12 -m venv myenv
+<br>
 •	Bước 3 : Run file setup_db.sh
 ./setup_db.sh
 3.	Khởi động server:
