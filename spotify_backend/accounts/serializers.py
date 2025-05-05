@@ -9,7 +9,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'password', 'confirm_password', 'profile_picture', 'gender', 'date_of_birth']
+        fields = ['id','username', 'email', 'password','is_superuser','is_premium', 'confirm_password', 'profile_picture', 'gender', 'date_of_birth']
         extra_kwargs = {
             'username': {'help_text': 'Unique username for the user'},
             'email': {'help_text': 'Unique email address for the user'},
