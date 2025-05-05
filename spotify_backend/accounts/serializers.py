@@ -81,3 +81,25 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 }
             }
             raise exceptions.AuthenticationFailed(error_response)
+        
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = [
+            'id',
+            'username',
+            'email',
+            'is_staff',
+            'is_superuser',
+            'is_premium',
+            'profile_picture',
+            'gender',
+            'date_of_birth',
+        ]
+        read_only_fields = ['id', 'username', 'email', 'is_staff', 'is_superuser']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.profile_picture:
+            representation['profile_picture'] = instance.profile_picture.url
+        return representation

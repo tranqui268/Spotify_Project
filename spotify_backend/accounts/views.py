@@ -1,13 +1,14 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
-from .serializers import UserRegistrationSerializer, CustomTokenObtainPairSerializer
+from .serializers import UserRegistrationSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import CustomUser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .permissions import IsAdminUser
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
 
 class UserPagination(PageNumberPagination):
     page_size = 10  # Số lượng user mỗi trang
@@ -97,3 +98,23 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         response = super().post(request, *args, **kwargs)
         return response
 
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Get profile information of the authenticated user",
+        responses={
+            200: openapi.Response(description="User profile retrieved successfully"),
+            401: openapi.Response(description="Unauthorized"),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve the profile of the authenticated user.
+        """
+        user = request.user
+        serializer = UserProfileSerializer(user)
+        return Response({
+            "status": "success",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
