@@ -29,7 +29,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         # Check email existed 
         if CustomUser.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError({"Email": "A user with this email already exists."})
+            raise serializers.ValidationError({"email": "A user with this email already exists."})
         
         return data
     
