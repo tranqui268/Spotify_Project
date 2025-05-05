@@ -1,7 +1,9 @@
 # I.	Cài đặt Frontend (Next.js)
 ## 1.	Yêu cầu hệ thống:
 •	Node.js ≥ v18.x
+
 •	npm ≥ 9.x
+
 •	Git
 ## 2.	Các bước triển khai:
 •	Bước 1: Clone repository từ GitHub
@@ -17,7 +19,9 @@ o	Truy cập ứng dụng tại: http://localhost:3000.
 # II.	Cài đặt Backend (Django)
 ## 1.	Yêu cầu hệ thống:
 •	Python 3.12
+
 •	Pip
+
 •	PostgreSQL ≥ 14.x
 ## 2.	Các bước triển khai: trong môi trường ubuntu
 •	Bước 1: Clone repository từ GitHub
