@@ -13,7 +13,6 @@ from drf_yasg.utils import swagger_auto_schema
 class SongViewSet(viewsets.ModelViewSet):
     queryset = Song.objects.all()
     serializer_class = SongSerializer
-    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="List all songs or create a new song (Authenticated users)",
@@ -294,7 +293,6 @@ class SongViewSet(viewsets.ModelViewSet):
 class ArtistListCreateView(generics.ListAPIView):
     queryset = Artist.objects.all()
     serializer_class = ArtistSerializer
-    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="List all artists or create a new artist (Authenticated users)",
@@ -469,7 +467,6 @@ class GenreListCreateView(generics.ListAPIView):
 class GenreDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="Retrieve a genre by ID (Authenticated users)",
@@ -536,7 +533,6 @@ class GenreDetailView(generics.RetrieveUpdateDestroyAPIView):
 class AlbumListCreateView(generics.ListCreateAPIView):
     queryset = Album.objects.all()
     serializer_class = AlbumSerializer
-    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="List all albums or create a new album (Authenticated users)",
@@ -569,7 +565,6 @@ class AlbumListCreateView(generics.ListCreateAPIView):
 class AlbumDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Album.objects.all()
     serializer_class = AlbumSerializer
-    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="Retrieve an album by ID (Authenticated users)",
