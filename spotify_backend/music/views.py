@@ -6,6 +6,7 @@ from .serializers import SongSerializer, ArtistSerializer, GenreSerializer, Albu
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from drf_yasg import openapi
 from rest_framework.response import Response
+from django.db import models
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 
