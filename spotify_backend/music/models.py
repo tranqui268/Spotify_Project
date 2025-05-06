@@ -51,7 +51,7 @@ class Song(models.Model):
     duration = models.IntegerField()
     lyrics = models.TextField(blank=True)
     total_plays = models.PositiveIntegerField(default=0)
-    release_date = models.DateField()
+    release_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.title

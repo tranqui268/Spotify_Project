@@ -52,11 +52,11 @@ class Command(BaseCommand):
             'artist': lambda x: seeder.faker.random_element(elements=Artist.objects.all()),
             'album': lambda x: seeder.faker.random_element(elements=Album.objects.all()),
             'genre': lambda x: seeder.faker.random_element(elements=Genre.objects.all()),
-            'duration': lambda x: seeder.faker.random_int(min=120, max=300),
+            'duration': 248,
             'release_date': lambda x: seeder.faker.date_this_year(),
             'total_plays': lambda x: seeder.faker.random_int(min=0, max=100000),
             'song_image': 'https://res.cloudinary.com/dhis8yzem/image/upload/v1746455024/music_tsgdjp.jpg',  # Bỏ qua CloudinaryField
-            'audio_file': lambda x: None,  # Bỏ qua CloudinaryField
+            'audio_file': 'https://res.cloudinary.com/dhis8yzem/video/upload/v1746535846/YenBinhCoQuaDatKhong-Khiem-15073642_dt2yok.mp3',
             'video_file': lambda x: None,  # Bỏ qua CloudinaryField
         })
 

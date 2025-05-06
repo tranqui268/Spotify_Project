@@ -635,7 +635,8 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         # Chỉ hiển thị playlists công khai hoặc playlists của user hiện tại
         user = self.request.user
-        return Playlist.objects.filter(models.Q(is_public=True) | models.Q(user=user))
+        # return Playlist.objects.filter(models.Q(is_public=True) | models.Q(user=user))
+        return Playlist.objects.filter(models.Q(user=user))
 
     @swagger_auto_schema(
         operation_description="List all public playlists or playlists created by the authenticated user, or create a new playlist",
@@ -661,7 +662,7 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)  # Gán user hiện tại
+            serializer.save(user=request.user)
             return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
         return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 

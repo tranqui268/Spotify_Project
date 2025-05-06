@@ -169,7 +169,11 @@ class SongSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
-    songs = SongSerializer(many=True)
+    songs = serializers.PrimaryKeyRelatedField(
+        queryset=Song.objects.all(),
+        many=True,
+        required=True
+    )
 
     class Meta:
         model = Playlist
@@ -179,12 +183,35 @@ class PlaylistSerializer(serializers.ModelSerializer):
     def validate_songs(self, value):
         if not value:
             raise serializers.ValidationError("A playlist must contain at least one song.")
-        return value
+        
+        # Chuyển đổi value thành danh sách ID
+        song_ids = []
+        for item in value:
+            if isinstance(item, int):
+                song_ids.append(item)
+            elif hasattr(item, 'id'):  # Nếu là object Song
+                song_ids.append(item.id)
+            else:
+                raise serializers.ValidationError(f"Invalid song value: {item}. Must be an ID or Song object with an ID.")
+
+        # Kiểm tra ID hợp lệ
+        invalid_ids = [song_id for song_id in song_ids if not Song.objects.filter(id=song_id).exists()]
+        if invalid_ids:
+            raise serializers.ValidationError(f"The following song IDs do not exist: {invalid_ids}")
+        return song_ids  # Trả về danh sách ID đã xử lý
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        songs_data = validated_data.pop('songs')
+        playlist = Playlist.objects.create(user=user, **{k: v for k, v in validated_data.items() if k != 'user'})
+        playlist.songs.set(songs_data)
+        return playlist
 
     def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        return representation
-
+       representation = super().to_representation(instance)
+       print(f"Songs queryset: {instance.songs.all()}")  # Debug
+       representation['songs'] = SongSerializer(instance.songs.all(), many=True).data
+       return representation
 
 
 
