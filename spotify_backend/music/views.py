@@ -660,6 +660,23 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        user = request.user
+
+        # Nếu không có dữ liệu trong body, tạo playlist rỗng với tên tự động
+        if not request.data:
+            # Đếm số playlist của user
+            playlist_count = Playlist.objects.filter(user=user).count()
+            new_playlist_name = f"Playlist#{playlist_count + 1}"
+            
+            # Tạo playlist rỗng
+            playlist = Playlist.objects.create(
+                name=new_playlist_name,
+                user=user,
+                is_public=False  # Mặc định là private
+            )
+            serializer = self.get_serializer(playlist)
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)
@@ -671,12 +688,19 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PlaylistSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Playlist.objects.all()
+        return Playlist.objects.filter(models.Q(is_public=True) | models.Q(user=user))
+
     @swagger_auto_schema(
-        operation_description="Retrieve a playlist by ID (Public playlists or playlists of authenticated user)",
+        operation_description="Retrieve a playlist by ID (public playlists or playlists of authenticated user)",
         responses={
             200: openapi.Response(description="Playlist details"),
             404: openapi.Response(description="Playlist not found"),
-            401: openapi.Response(description="Unauthorized")
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden")
         }
     )
     def get(self, request, *args, **kwargs):
@@ -685,7 +709,71 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="Update a playlist by ID (Only owner can update)",
+        operation_description="Add songs to an existing playlist by ID (only the owner or admin can add songs)",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'songs': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description="List of song IDs to add to the playlist"
+                )
+            },
+            required=['songs']
+        ),
+        responses={
+            200: openapi.Response(description="Songs added successfully"),
+            400: openapi.Response(description="Bad request"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Playlist not found"),
+            401: openapi.Response(description="Unauthorized")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        playlist = self.get_object()
+        songs_ids = request.data.get('songs', [])
+
+        # Kiểm tra quyền: Chỉ owner hoặc admin mới được thêm nhạc
+        if playlist.user != request.user and not request.user.is_staff:
+            return Response(
+                {"status": "error", "message": "Bạn không có quyền thêm nhạc vào playlist này"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Kiểm tra songs_ids là mảng
+        if not isinstance(songs_ids, list):
+            return Response(
+                {"status": "error", "message": "Danh sách bài nhạc phải là một mảng"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Kiểm tra các ID bài nhạc có hợp lệ không
+        invalid_ids = [song_id for song_id in songs_ids if not Song.objects.filter(id=song_id).exists()]
+        if invalid_ids:
+            return Response(
+                {"status": "error", "message": f"Các ID bài nhạc sau không tồn tại: {invalid_ids}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Kiểm tra bài nhạc đã có trong playlist chưa
+        existing_songs = set(playlist.songs.values_list('id', flat=True))
+        new_songs = [song_id for song_id in songs_ids if song_id not in existing_songs]
+        if not new_songs:
+            return Response(
+                {"status": "success", "message": "Tất cả bài nhạc đã có trong playlist"},
+                status=status.HTTP_200_OK
+            )
+
+        # Thêm các bài nhạc mới
+        playlist.songs.add(*new_songs)
+        serializer = self.get_serializer(playlist)
+        return Response(
+            {"status": "success", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+    @swagger_auto_schema(
+        operation_description="Update a playlist by ID (only the owner can update)",
         request_body=PlaylistSerializer,
         responses={
             200: openapi.Response(description="Playlist updated"),
@@ -704,8 +792,16 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        operation_description="Partially update a playlist by ID (Only owner can update)",
-        request_body=PlaylistSerializer,
+        operation_description="Partially update a playlist by ID (only the owner can update, e.g., change name)",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="New name for the playlist"
+                )
+            }
+        ),
         responses={
             200: openapi.Response(description="Playlist updated"),
             400: openapi.Response(description="Bad request"),
@@ -723,9 +819,20 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({"status": "error", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        operation_description="Delete a playlist by ID (Only owner can delete)",
+        operation_description="Delete a playlist by ID (only the owner can delete) or remove songs from playlist",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'songs': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description="List of song IDs to remove from the playlist (optional)"
+                )
+            }
+        ),
         responses={
-            204: openapi.Response(description="Playlist deleted"),
+            204: openapi.Response(description="Playlist deleted or songs removed"),
+            400: openapi.Response(description="Bad request"),
             403: openapi.Response(description="Forbidden"),
             404: openapi.Response(description="Playlist not found"),
             401: openapi.Response(description="Unauthorized")
@@ -733,7 +840,49 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
     )
     def delete(self, request, *args, **kwargs):
         playlist = self.get_object()
+
+        # Kiểm tra quyền: Chỉ owner hoặc admin mới được xóa
+        if playlist.user != request.user and not request.user.is_staff:
+            return Response(
+                {"status": "error", "message": "Bạn không có quyền thực hiện hành động này"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Kiểm tra xem có yêu cầu xóa bài nhạc không
+        songs_ids = request.data.get('songs', None)
+        if songs_ids is not None:
+            # Xóa bài nhạc khỏi playlist
+            if not isinstance(songs_ids, list):
+                return Response(
+                    {"status": "error", "message": "Danh sách bài nhạc phải là một mảng"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Kiểm tra các ID bài nhạc có hợp lệ không
+            invalid_ids = [song_id for song_id in songs_ids if not Song.objects.filter(id=song_id).exists()]
+            if invalid_ids:
+                return Response(
+                    {"status": "error", "message": f"Các ID bài nhạc sau không tồn tại: {invalid_ids}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Kiểm tra bài nhạc có trong playlist không
+            existing_songs = set(playlist.songs.values_list('id', flat=True))
+            songs_to_remove = [song_id for song_id in songs_ids if song_id in existing_songs]
+            if not songs_to_remove:
+                return Response(
+                    {"status": "success", "message": "Không có bài nhạc nào trong playlist để xóa"},
+                    status=status.HTTP_200_OK
+                )
+
+            # Xóa các bài nhạc
+            playlist.songs.remove(*songs_to_remove)
+            serializer = self.get_serializer(playlist)
+            return Response(
+                {"status": "success", "data": serializer.data},
+                status=status.HTTP_200_OK
+            )
+
+        # Nếu không có songs trong body, xóa toàn bộ playlist
         playlist.delete()
         return Response({"status": "success", "message": "Playlist deleted"}, status=status.HTTP_204_NO_CONTENT)
-
-
