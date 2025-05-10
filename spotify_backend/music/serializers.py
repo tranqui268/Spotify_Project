@@ -120,7 +120,7 @@ class SongSerializer(serializers.ModelSerializer):
     audio_file = serializers.FileField(required=True, write_only=True)
     video_file = serializers.FileField(required=False, write_only=True, allow_null=True)
     artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())
-    album = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all())
+    album = serializers.PrimaryKeyRelatedField(queryset=Album.objects.all(), required=False)
     class Meta:
         model = Song
         fields = [
@@ -128,11 +128,49 @@ class SongSerializer(serializers.ModelSerializer):
             'video_file', 'duration', 'lyrics', 'total_plays', 'release_date'
         ]
         read_only_fields = ['id'] 
+
+    def validate_audio_file(self, value):
+        if not value:
+            raise serializers.ValidationError("Audio file is required.")
+        valid_audio_formats = ['mp3', 'wav', 'aac', 'm4a', 'ogg']
+        file_extension = value.name.split('.')[-1].lower() if value.name else ''
+        if file_extension not in valid_audio_formats:
+            raise serializers.ValidationError(
+                f"Unsupported audio format: {file_extension}. Supported formats are: {', '.join(valid_audio_formats)}."
+            )
+        return value
+
+    def validate_song_image(self, value):
+        if value:
+            valid_image_formats = ['jpg', 'jpeg', 'png', 'gif']
+            file_extension = value.name.split('.')[-1].lower() if value.name else ''
+            if file_extension not in valid_image_formats:
+                raise serializers.ValidationError(
+                    f"Unsupported image format: {file_extension}. Supported formats are: {', '.join(valid_image_formats)}."
+                )
+        return value
+
+    def validate_video_file(self, value):
+        if value:
+            valid_video_formats = ['mp4', 'mov', 'avi', 'mkv']
+            file_extension = value.name.split('.')[-1].lower() if value.name else ''
+            if file_extension not in valid_video_formats:
+                raise serializers.ValidationError(
+                    f"Unsupported video format: {file_extension}. Supported formats are: {', '.join(valid_video_formats)}."
+                )
+        return value
     
     def create(self, validated_data):
         song_image = validated_data.pop('song_image', None)
         audio_file = validated_data.pop('audio_file')
         video_file = validated_data.pop('video_file', None)
+
+        if song_image == "":
+            song_image = None
+        if audio_file == "":
+            audio_file = None
+        if video_file == "":
+            video_file = None
 
         song = Song.objects.create(
             **validated_data,
