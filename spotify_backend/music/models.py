@@ -8,7 +8,7 @@ class Artist(models.Model):
     """ Music Artists Model """
     name = models.CharField(max_length=200)
     bio = models.TextField(blank=True)
-    profile_picture = CloudinaryField('image',blank=True, null=True, folder='spotify')
+    profile_picture = models.URLField(blank=True, null=True)
     verified = models.BooleanField(default=False)
     monthly_listeners = models.IntegerField(default=0)
 
@@ -30,7 +30,7 @@ class Album(models.Model):
     genre = models.ForeignKey(Genre,on_delete=models.CASCADE,null=True,blank=True)
     total_song = models.IntegerField(default=0)
     release_date = models.DateField()
-    cover_image = CloudinaryField('image',blank=True, null=True, folder='spotify')
+    cover_image = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.title
@@ -45,7 +45,7 @@ class Song(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='songs')
     album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='songs', null=True, blank=True)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, null=True, blank=True)
-    song_image = CloudinaryField('image',blank=True, null=True, folder='spotify', resource_type='image')
+    song_image = models.URLField(blank=True, null=True)
     audio_file = CloudinaryField('audio', folder='spotify',resource_type='raw')
     video_file = CloudinaryField('video',null=True, blank=True, folder='spotify', resource_type='video')
     duration = models.IntegerField()
@@ -82,4 +82,3 @@ class ListeningHistory(models.Model):
     song = models.ForeignKey(Song,on_delete=models.CASCADE)
     listened_at = models.DateTimeField(auto_now_add=True)
     duration_listened = models.DurationField()
-    

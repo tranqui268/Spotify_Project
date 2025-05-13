@@ -16,10 +16,11 @@ class ArtistSerializer1(serializers.ModelSerializer) :
 class ArtistSerializer(serializers.ModelSerializer) :
     profile_picture = serializers.ImageField(required=False, write_only=True, allow_null=True) 
     songs = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Artist
-        fields = ['id', 'name', 'bio', 'profile_picture', 'verified', 'monthly_listeners', 'songs']
+        fields = ['id', 'name', 'bio', 'profile_picture', 'verified', 'monthly_listeners', 'songs', 'profile_picture_url']
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -46,10 +47,8 @@ class ArtistSerializer(serializers.ModelSerializer) :
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        if instance.profile_picture:
-            representation['profile_picture'] = instance.profile_picture.url
-        else:
-            representation['profile_picture'] = None
+        if isinstance(instance.profile_picture, str):
+            representation['profile_picture'] = instance.profile_picture  # Trả về trực tiếp URL nếu là URLField
         return representation
     
     def get_songs(self, obj):
@@ -57,6 +56,11 @@ class ArtistSerializer(serializers.ModelSerializer) :
         # Tránh đệ quy bằng cách truyền context và giới hạn serialize
         song_serializer = SongSerializer(songs, many=True, context={'request': self.context.get('request')})
         return song_serializer.data
+
+    def get_profile_picture_url(self, obj):
+        if obj.profile_picture:
+            return obj.profile_picture  # Trả về trực tiếp URL nếu là URLField
+        return None
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -68,17 +72,13 @@ class GenreSerializer(serializers.ModelSerializer):
 class AlbumSerializer(serializers.ModelSerializer):
     artist = ArtistSerializer1(read_only=True)
     genre = serializers.PrimaryKeyRelatedField(queryset=Genre.objects.all(), required=False, allow_null=True)
-    cover_image = serializers.ImageField(
-        required=False,
-        write_only=True,
-        allow_null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
-    )
+    cover_image = serializers.SerializerMethodField()
     songs = serializers.SerializerMethodField()
+    cover_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Album
-        fields = ['id', 'title', 'artist', 'genre', 'total_song', 'release_date', 'cover_image', 'songs']
+        fields = ['id', 'title', 'artist', 'genre', 'total_song', 'release_date', 'cover_image', 'songs', 'cover_image_url']
         read_only_fields = ['id']
 
     def create(self, validated_data):
@@ -105,8 +105,8 @@ class AlbumSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['genre'] = instance.genre.name if instance.genre else None
-        representation['cover_image'] = instance.cover_image.url if instance.cover_image else None
+        if isinstance(instance.cover_image, str):
+            representation['cover_image'] = instance.cover_image  # Trả về trực tiếp URL nếu là URLField
         return representation
     
     def get_songs(self, obj):
@@ -115,8 +115,24 @@ class AlbumSerializer(serializers.ModelSerializer):
         song_serializer = SongSerializer(songs, many=True, context={'request': self.context.get('request')})
         return song_serializer.data
 
+    def get_cover_image(self, obj):
+        if obj.cover_image:
+            return obj.cover_image  # Trả về trực tiếp URL nếu là URLField
+        return None
+
+    def get_cover_image_url(self, obj):
+        if obj.cover_image:
+            return obj.cover_image  # Trả về trực tiếp URL nếu là URLField
+        return None
+
 class SongSerializer(serializers.ModelSerializer):
-    song_image = serializers.ImageField(required=False, write_only=True, allow_null=True)
+    song_image = serializers.SerializerMethodField()
+
+    def get_song_image(self, obj):
+        if obj.song_image:
+            return obj.song_image  # Trả về trực tiếp URL nếu là URLField
+        return None
+
     audio_file = serializers.FileField(required=True, write_only=True)
     video_file = serializers.FileField(required=False, write_only=True, allow_null=True)
     artist = serializers.PrimaryKeyRelatedField(queryset=Artist.objects.all())
@@ -200,7 +216,6 @@ class SongSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['song_image'] = instance.song_image.url if instance.song_image else None
         representation['audio_file'] = instance.audio_file.url if instance.audio_file else None
         representation['video_file'] = instance.video_file.url if instance.video_file else None
         return representation
